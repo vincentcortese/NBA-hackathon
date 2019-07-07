@@ -1,4 +1,4 @@
-install.packages("lubridate")
+
 library(lubridate)
 
 # NBA Business problem 
@@ -6,7 +6,7 @@ library(lubridate)
 # Regression info: 
 # https://towardsdatascience.com/key-types-of-regressions-which-one-to-use-c1f25407a8a4
 
-setwd("C:/Users/Vincent/Documents/0 - Stevens/random")
+setwd("C:/Users/Vincent/Documents/0 - Stevens/random/NBA-hackathon-master/NBA-hackathon-master")
 
 nba <- read.csv("training_set.csv")
 # ==================================== FUNCTION ========================
@@ -109,14 +109,20 @@ for(i in 1:length(nba[,1])){
 
 # The regression showed the amount of hashtags in a post is insignificant interms of engagements
 
+# =============================== Next Section ===========================================
+
 # Let us try the log number of followers
 nba$log.followers <- NA
 for(i in 1:length(nba[,1])){
   nba$log.followers[i] <- log(nba$Followers.at.Posting[i], 10)
   }
-# summary(lm(nba$log.engage ~ nba$log.followers + nba$Caption.length + nba$Day.num + nba$Type.num + nba$TimeNum))
 
-# nba.log <- lm(nba$Engagements ~ nba$log.followers + nba$Caption.length + nba$Day.num + nba$Type.num + nba$TimeNum))
+# summary(lm(nba$log.engage ~ nba$log.followers + nba$Caption.length + 
+# nba$Day.num + nba$Type.num + nba$TimeNum))
+
+# nba.log <- lm(nba$Engagements ~ nba$log.followers + nba$Caption.length + 
+# nba$Day.num + nba$Type.num + nba$TimeNum))
+
 nba.sub <- nba[c(-3,-4,-5,-7,-10)]
 
 # Log base 10 model
@@ -124,9 +130,35 @@ nba.log.pred <- data.frame(apply(nba.sub, 2, log10))
 for(i in 1:length(nba[,1])){
   if(nba.log.pred$Caption.length[i] == -Inf)(nba.log.pred$Caption.length[i] <- 0)
 }
+
+nba.log.pred$is.weekend <- NA
+for(i in 1:length(nba[,1])){
+  if(nba$Day.num[i] == 1)(nba.log.pred$is.weekend[i] = 1)
+  else if (nba$Day.num[i] == 7)(nba.log.pred$is.weekend[i] = 1)
+  else(nba.log.pred$is.weekend[i] = 0)
+}
 summary(lm(nba.log.pred))
 
 nba.log.model <- lm(nba.log.pred)
+
+
+# ====================================== Data Check ============================ 
+plot(resid(nba.log.model), ylim = c(-.5,.5))
+abline(h = 0, col = 'red', pch = 16)
+
+hist(nba$log.followers)
+jarqueberaTest(nba$Followers.at.Posting)
+
+plot(density(resid(nba.log.model)))
+
+# jarqueberaTest(resid(nba.log.model))
+
+qqnorm(resid(nba.log.model))
+qqline(resid(nba.log.model))
+
+# jarqueberaTest(nba$Engagements)
+
+# ====================================== NExt ================================
 
 # summary(lm(nba.log.pred$Engagements ~ nba.log.pred$Followers.at.Posting + nba.log.pred$Caption.length 
 #            + nba$Day.num + nba$Type.num + nba$TimeNum))
@@ -226,6 +258,14 @@ nba.pred.sub <- nba.pred[c(-3,-4,-5,-7,-10)]
 
 # Predicting the log values
 nba.log.sub <- data.frame(apply(nba.pred.sub, 2, log10))
+
+nba.log.sub$is.weekend <- NA
+for(i in 1:length(nba.pred.sub[,1])){
+  if(nba.pred.sub$Day.num[i] == 1)(nba.log.sub$is.weekend[i] = 1)
+  else if (nba.pred.sub$Day.num[i] == 7)(nba.log.sub$is.weekend[i] = 1)
+  else(nba.log.sub$is.weekend[i] = 0)
+}
+
 log.predict <- predict(nba.log.model, nba.log.sub)
 
 for(i in 1:1000){
@@ -253,14 +293,16 @@ nba.pred$Engagements <- log.predict
 summary(nba$Engagements)
 sd(nba$Engagements)
 
+final <- nba.pred[c(-6:-12)]
+
 summary(final$Engagements)
 sd(final$Engagements)
 
 # ============================== Graphs and writing the data ===================
 
-hist(nba$Engagements, freq = F)
-par(new )
-hist(final$Engagements, xlim = c(200000,1200000))
+# hist(nba$Engagements, freq = F)
+# par(new )
+# hist(final$Engagements, xlim = c(200000,1200000))
 
 actual <- nba$Engagements
 pred <- final$Engagements
@@ -270,15 +312,15 @@ hpred <- hist(pred, plot = F)
 xlim <- range(hactual$breaks, hpred$breaks)
 ylim <- range(0, hactual$density, hpred$density)
 
-plot(hactual, xlim = xlim, ylim = ylim, col = rgb(1,0,0,0.4), xlab = 'Engagements',
-     freq = FALSE, main = 'Comparing the distributions')
-opar <- par(new = FALSE)
-plot(hpred, xlim = xlim, ylim = ylim, xaxt = 'n', yaxt = 'n', col = rgb(0,0,1,0.4), 
-     add = TRUE,freq = FALSE)
-legend('topleft',c('Actual','Predicted'),
-       fill = rgb(1:0,0,0:1,0.4), bty = 'n',
-       border = NA)
-par(opar)
+# plot(hactual, xlim = xlim, ylim = ylim, col = rgb(1,0,0,0.4), xlab = 'Engagements',
+#      freq = FALSE, main = 'Comparing the distributions')
+# opar <- par(new = FALSE)
+# plot(hpred, xlim = xlim, ylim = ylim, xaxt = 'n', yaxt = 'n', col = rgb(0,0,1,0.4), 
+#      add = TRUE,freq = FALSE)
+# legend('topleft',c('Actual','Predicted'),
+#        fill = rgb(1:0,0,0:1,0.4), bty = 'n',
+#        border = NA)
+# par(opar)
 
 # Same graph above and below, slightly different ways to get there
 
@@ -294,9 +336,13 @@ legend('topleft',c('Actual','Predicted'),
 # predicted <- predict(nba.regress, nba.pred.sub)
 # nba.pred$Engagements <- predicted
 
+# jarqueberaTest(nba$Engagements)
+# jarqueberaTest(final$Engagements)
+
 # ============================ Last bit ======================
 
 final <- nba.pred[c(-6:-12)]
+head(final)
 
 write.csv(final, file = "holdout_set_Cortese.csv")
 
